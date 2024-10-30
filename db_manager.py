@@ -1,4 +1,5 @@
 import sqlite3
+import pandas as pd
 
 DB_NAME = 'finance.db'
 
@@ -68,3 +69,22 @@ def get_all_transactions(db_path):
     transactions = cursor.fetchall()
     conn.close()
     return [f"Type: {t[5]}, Amount: ${t[4]:.2f}, Category: {t[2]}" for t in transactions]  # Adjust indexes based on your schema
+
+
+def get_filtered_data(db_path, year, month):
+    """Retrieve filtered data based on year and month from the database."""
+    conn = sqlite3.connect(db_path)
+    query = """
+    SELECT category,
+           SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS Income,
+           SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS Expenses
+    FROM transactions  -- Make sure the table name matches (case-sensitive)
+    WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?
+    GROUP BY category
+    """
+
+    # Execute the query with parameters
+    filtered_data = pd.read_sql_query(query, conn, params=(year, month))
+    conn.close()
+
+    return filtered_data
